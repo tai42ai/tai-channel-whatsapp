@@ -1,8 +1,8 @@
-"""WhatsApp Cloud channel settings.
+"""WhatsApp channel settings.
 
-A ``TaiBaseSettings`` subclass reading the ``CHANNEL_WHATSAPP_CLOUD_`` env group
+A ``TaiBaseSettings`` subclass reading the ``CHANNEL_WHATSAPP_`` env group
 through accessors cached by ``tai42_kit.settings.settings_cache`` (dropped on a
-soft restart). ``CHANNEL_WHATSAPP_CLOUD_ALLOWED_RECIPIENTS`` whitelists
+soft restart). ``CHANNEL_WHATSAPP_ALLOWED_RECIPIENTS`` whitelists
 caller-requested destinations for ask_user. The access token, app secret, and
 verify token are ``SecretStr`` (never in a repr/log/traceback); the plaintext is
 read only at the Bearer-auth and signature-HMAC seams.
@@ -20,8 +20,8 @@ from tai42_kit.clients import RedisConnectionSettings
 from tai42_kit.settings import TaiBaseSettings, settings_cache
 
 
-class WhatsAppCloudSettings(TaiBaseSettings):
-    model_config = SettingsConfigDict(env_prefix="CHANNEL_WHATSAPP_CLOUD_")
+class WhatsAppSettings(TaiBaseSettings):
+    model_config = SettingsConfigDict(env_prefix="CHANNEL_WHATSAPP_")
 
     # Graph API bearer token (Basic bearer for the send; one token serves many numbers).
     access_token: SecretStr | None = None
@@ -62,26 +62,26 @@ class WhatsAppCloudSettings(TaiBaseSettings):
 
 
 @settings_cache
-def whatsapp_cloud_settings() -> WhatsAppCloudSettings:
-    return WhatsAppCloudSettings()
+def whatsapp_settings() -> WhatsAppSettings:
+    return WhatsAppSettings()
 
 
-class WhatsAppCloudRedisSettings(RedisConnectionSettings):
-    """Connection for the plugin-owned correlation store (``CHANNEL_WHATSAPP_CLOUD_REDIS_URL`` etc.)."""
+class WhatsAppRedisSettings(RedisConnectionSettings):
+    """Connection for the plugin-owned correlation store (``CHANNEL_WHATSAPP_REDIS_URL`` etc.)."""
 
-    model_config = SettingsConfigDict(env_prefix="CHANNEL_WHATSAPP_CLOUD_")
+    model_config = SettingsConfigDict(env_prefix="CHANNEL_WHATSAPP_")
 
 
 @settings_cache
-def whatsapp_cloud_redis_settings() -> WhatsAppCloudRedisSettings:
-    return WhatsAppCloudRedisSettings()
+def whatsapp_redis_settings() -> WhatsAppRedisSettings:
+    return WhatsAppRedisSettings()
 
 
 def require_delivery_setting(value: str | None, env_name: str) -> str:
     """The configured value an outbound send needs; raises ``ChannelDeliveryError``
     (naming only the env var) when unset. Checked before any network work."""
     if not value:
-        raise ChannelDeliveryError(f"WhatsApp Cloud channel is not configured: set {env_name}.")
+        raise ChannelDeliveryError(f"WhatsApp channel is not configured: set {env_name}.")
     return value
 
 
@@ -90,7 +90,7 @@ def require_delivery_secret(value: SecretStr | None, env_name: str) -> str:
     (naming only the env var, never the value) when unset."""
     secret = value.get_secret_value() if value is not None else ""
     if not secret:
-        raise ChannelDeliveryError(f"WhatsApp Cloud channel is not configured: set {env_name}.")
+        raise ChannelDeliveryError(f"WhatsApp channel is not configured: set {env_name}.")
     return secret
 
 
@@ -102,5 +102,5 @@ def require_secret(value: SecretStr | None, env_name: str) -> str:
     """
     secret = value.get_secret_value() if value is not None else ""
     if not secret:
-        raise ValueError(f"WhatsApp Cloud channel is not configured: set {env_name}.")
+        raise ValueError(f"WhatsApp channel is not configured: set {env_name}.")
     return secret

@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from tai42_contract.channels import ChannelDeliveryError
 
-from tai42_channel_whatsapp_cloud.correlation import (
+from tai42_channel_whatsapp.correlation import (
     PendingQuestion,
     PendingQuestionExistsError,
     already_seen,
@@ -24,7 +24,7 @@ pytestmark = pytest.mark.usefixtures("whatsapp_env")
 
 _PNID = "10000000000001"
 _WA = "15559990001"
-_KEY = f"channel:whatsapp-cloud:pending:{_PNID}:{_WA}"
+_KEY = f"channel:whatsapp:pending:{_PNID}:{_WA}"
 _CALLBACK = "https://app.example/api/interactions/callback/ticket-1"
 
 
@@ -131,13 +131,13 @@ async def test_seen_round_trip_uses_dedupe_ttl(fake_redis: FakeRedis):
     await mark_seen("wamid.ABC")
 
     assert await already_seen("wamid.ABC") is True
-    assert fake_redis.ttls["channel:whatsapp-cloud:seen:wamid.ABC"] == 172_800
+    assert fake_redis.ttls["channel:whatsapp:seen:wamid.ABC"] == 172_800
 
 
 async def test_missing_redis_url_raises_on_every_store_function(fake_redis: FakeRedis, monkeypatch: pytest.MonkeyPatch):
     from tai42_kit.settings import reset_all_settings
 
-    monkeypatch.delenv("CHANNEL_WHATSAPP_CLOUD_REDIS_URL")
+    monkeypatch.delenv("CHANNEL_WHATSAPP_REDIS_URL")
     reset_all_settings()
 
     question = PendingQuestion(callback_url=_CALLBACK, timeout_at=_deadline())
@@ -149,5 +149,5 @@ async def test_missing_redis_url_raises_on_every_store_function(fake_redis: Fake
         already_seen("wamid.ABC"),
         mark_seen("wamid.ABC"),
     ):
-        with pytest.raises(ValueError, match="CHANNEL_WHATSAPP_CLOUD_REDIS_URL"):
+        with pytest.raises(ValueError, match="CHANNEL_WHATSAPP_REDIS_URL"):
             await call

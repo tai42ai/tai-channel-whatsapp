@@ -11,9 +11,9 @@ import pytest
 from starlette.responses import Response
 from tai42_contract.conversations import DeliveryReceipt
 
-import tai42_channel_whatsapp_cloud.inbound  # noqa: F401  (route registration side-effect)
-from tai42_channel_whatsapp_cloud.correlation import reserve_pending
-from tai42_channel_whatsapp_cloud.inbound import AnswerForwardError
+import tai42_channel_whatsapp.inbound  # noqa: F401  (route registration side-effect)
+from tai42_channel_whatsapp.correlation import reserve_pending
+from tai42_channel_whatsapp.inbound import AnswerForwardError
 from tests.conftest import (
     PHONE_NUMBER_ID,
     WA_ID,
@@ -31,11 +31,11 @@ from tests.conftest import (
 
 pytestmark = pytest.mark.usefixtures("whatsapp_env")
 
-_PATH = "/api/channels/whatsapp-cloud/inbound"
+_PATH = "/api/channels/whatsapp/inbound"
 _WAMID = "wamid.TESTID"
 _CALLBACK = "https://app.example/api/interactions/callback/ticket-1"
-_SEEN_KEY = f"channel:whatsapp-cloud:seen:{_WAMID}"
-_PENDING_KEY = f"channel:whatsapp-cloud:pending:{PHONE_NUMBER_ID}:{WA_ID}"
+_SEEN_KEY = f"channel:whatsapp:seen:{_WAMID}"
+_PENDING_KEY = f"channel:whatsapp:pending:{PHONE_NUMBER_ID}:{WA_ID}"
 
 
 @pytest.fixture
@@ -102,7 +102,7 @@ async def test_verify_unset_token_is_500(
 ):
     from tai42_kit.settings import reset_all_settings
 
-    monkeypatch.delenv("CHANNEL_WHATSAPP_CLOUD_VERIFY_TOKEN")
+    monkeypatch.delenv("CHANNEL_WHATSAPP_VERIFY_TOKEN")
     reset_all_settings()
 
     result = await handler(verify_request(challenge="12345"))
@@ -157,7 +157,7 @@ async def test_unset_app_secret_is_500(
 ):
     from tai42_kit.settings import reset_all_settings
 
-    monkeypatch.delenv("CHANNEL_WHATSAPP_CLOUD_APP_SECRET")
+    monkeypatch.delenv("CHANNEL_WHATSAPP_APP_SECRET")
     reset_all_settings()
 
     # Operator misconfiguration is a logged, constant 500 — never a 401 that reads
@@ -242,7 +242,7 @@ async def test_uncorrelated_routed_inbound_calls_accept_with_verbatim_args(
     assert not fake_httpx.calls  # bridge does not use the ask_user forward
     assert stub_app.conversations.accept_calls == [
         {
-            "channel": "whatsapp-cloud",
+            "channel": "whatsapp",
             "our_identity": PHONE_NUMBER_ID,
             "client_address": WA_ID,
             "text": "ship it",
@@ -278,7 +278,7 @@ async def test_expired_question_reply_reaches_bridge(handler, stub_app, fake_red
     assert result.status_code == 200
     assert stub_app.conversations.accept_calls == [
         {
-            "channel": "whatsapp-cloud",
+            "channel": "whatsapp",
             "our_identity": PHONE_NUMBER_ID,
             "client_address": WA_ID,
             "text": "late reply",
@@ -404,8 +404,8 @@ async def test_batched_failing_reply_does_not_starve_independent_bridge(
 
     assert [c["provider_message_id"] for c in stub_app.conversations.accept_calls] == ["wamid.M2"]  # m2 committed
     assert await _pending_intact(fake_redis)  # m1 restored — it retries on redelivery
-    assert "channel:whatsapp-cloud:seen:wamid.M1" not in fake_redis.store  # m1 un-acked
-    assert "channel:whatsapp-cloud:seen:wamid.M2" in fake_redis.store  # m2 acked
+    assert "channel:whatsapp:seen:wamid.M1" not in fake_redis.store  # m1 un-acked
+    assert "channel:whatsapp:seen:wamid.M2" in fake_redis.store  # m2 acked
 
     # Redelivery: m1 fails again (still 5xx), m2 is dedupe-skipped (no re-bridge).
     fake_httpx.responses.append(response(500, text="down"))
@@ -431,7 +431,7 @@ async def test_status_infra_failure_reraises_but_later_message_commits(
         await handler(signed_request(payload))
 
     assert [c["provider_message_id"] for c in stub_app.conversations.accept_calls] == ["wamid.MSG"]  # committed
-    assert "channel:whatsapp-cloud:seen:wamid.MSG" in fake_redis.store
+    assert "channel:whatsapp:seen:wamid.MSG" in fake_redis.store
 
 
 async def test_batched_statuses_two_entries_all_settle(handler, stub_app):
@@ -572,7 +572,7 @@ async def test_status_sent_or_delivered_records_delivered(handler, stub_app, sta
 
     assert result.status_code == 200
     assert stub_app.conversations.status_calls == [
-        {"channel": "whatsapp-cloud", "provider_message_id": "wamid.OUT", "status": DeliveryReceipt.DELIVERED}
+        {"channel": "whatsapp", "provider_message_id": "wamid.OUT", "status": DeliveryReceipt.DELIVERED}
     ]
 
 
@@ -582,7 +582,7 @@ async def test_status_failed_records_failed_loudly(handler, stub_app, caplog: py
 
     assert result.status_code == 200
     assert stub_app.conversations.status_calls == [
-        {"channel": "whatsapp-cloud", "provider_message_id": "wamid.OUT", "status": DeliveryReceipt.FAILED}
+        {"channel": "whatsapp", "provider_message_id": "wamid.OUT", "status": DeliveryReceipt.FAILED}
     ]
     assert any("delivery failure" in record.message for record in caplog.records)
 

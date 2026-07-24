@@ -1,4 +1,4 @@
-"""Outbound WhatsApp Cloud (Meta Graph) send.
+"""Outbound WhatsApp (Meta Graph) send.
 
 One endpoint: ``POST {api}/{phone_number_id}/messages``, Bearer auth, JSON body,
 via the kit's pooled ``HttpxClient``. Exactly ONE send attempt per message — a
@@ -13,7 +13,7 @@ from tai42_contract.app import tai42_app
 from tai42_contract.channels import ChannelDeliveryError
 from tai42_kit.clients.impl.http import HttpxClient
 
-from tai42_channel_whatsapp_cloud.settings import require_delivery_secret, whatsapp_cloud_settings
+from tai42_channel_whatsapp.settings import require_delivery_secret, whatsapp_settings
 
 
 async def send_message(phone_number_id: str, to: str, body: str) -> str:
@@ -24,8 +24,8 @@ async def send_message(phone_number_id: str, to: str, body: str) -> str:
     network work), transport failure, a non-2xx response, or a 2xx that carries no
     message id. Never retries.
     """
-    settings = whatsapp_cloud_settings()
-    access_token = require_delivery_secret(settings.access_token, "CHANNEL_WHATSAPP_CLOUD_ACCESS_TOKEN")
+    settings = whatsapp_settings()
+    access_token = require_delivery_secret(settings.access_token, "CHANNEL_WHATSAPP_ACCESS_TOKEN")
     url = f"{settings.api_base_url}/{phone_number_id}/messages"
     payload = {"messaging_product": "whatsapp", "to": to, "type": "text", "text": {"body": body}}
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -33,14 +33,14 @@ async def send_message(phone_number_id: str, to: str, body: str) -> str:
         async with tai42_app.clients.client_ctx(HttpxClient, timeout=settings.http_timeout_seconds) as client:
             response = await client.post(url, json=payload, headers=headers)
     except httpx.HTTPError as exc:
-        raise ChannelDeliveryError(f"WhatsApp Cloud send failed in transport: {exc!r}") from exc
+        raise ChannelDeliveryError(f"WhatsApp send failed in transport: {exc!r}") from exc
     if response.status_code not in (200, 201):
         raise ChannelDeliveryError(
-            f"WhatsApp Cloud rejected the send: HTTP {response.status_code}: {_error_detail(response)}"
+            f"WhatsApp rejected the send: HTTP {response.status_code}: {_error_detail(response)}"
         )
     messages = response.json().get("messages") or []
     if not messages or not messages[0].get("id"):
-        raise ChannelDeliveryError("WhatsApp Cloud accepted the send but returned no message id")
+        raise ChannelDeliveryError("WhatsApp accepted the send but returned no message id")
     return messages[0]["id"]
 
 

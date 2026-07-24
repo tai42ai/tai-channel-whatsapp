@@ -1,7 +1,7 @@
-"""Live integration tests against the real WhatsApp Cloud API (outbound only).
+"""Live integration tests against the real WhatsApp API (outbound only).
 
 Run with ``pytest -m integration``. Reads the operator's
-``CHANNEL_WHATSAPP_CLOUD_*`` credentials from the environment and skips cleanly
+``CHANNEL_WHATSAPP_*`` credentials from the environment and skips cleanly
 when any is unset. Only the outbound send is live; the correlation store stays the
 in-memory fake, so ``deliver()`` proves the real Cloud API accept while writing no
 external state.
@@ -18,15 +18,15 @@ from tai42_kit.clients.impl.http import HttpxClient
 from tai42_kit.clients.impl.redis import RedisClient
 from tai42_kit.settings import reset_all_settings
 
-from tai42_channel_whatsapp_cloud import WhatsAppCloudChannel
-from tai42_channel_whatsapp_cloud.client import send_message
-from tai42_channel_whatsapp_cloud.settings import whatsapp_cloud_settings
+from tai42_channel_whatsapp import WhatsAppChannel
+from tai42_channel_whatsapp.client import send_message
+from tai42_channel_whatsapp.settings import whatsapp_settings
 from tests.conftest import FakeRedis, make_delivery
 
 _ENV_KEYS = (
-    "CHANNEL_WHATSAPP_CLOUD_ACCESS_TOKEN",
-    "CHANNEL_WHATSAPP_CLOUD_DEFAULT_PHONE_NUMBER_ID",
-    "CHANNEL_WHATSAPP_CLOUD_ALLOWED_RECIPIENTS",
+    "CHANNEL_WHATSAPP_ACCESS_TOKEN",
+    "CHANNEL_WHATSAPP_DEFAULT_PHONE_NUMBER_ID",
+    "CHANNEL_WHATSAPP_ALLOWED_RECIPIENTS",
 )
 
 
@@ -36,7 +36,7 @@ def _missing_creds() -> bool:
 
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.skipif(_missing_creds(), reason="CHANNEL_WHATSAPP_CLOUD_* not set"),
+    pytest.mark.skipif(_missing_creds(), reason="CHANNEL_WHATSAPP_* not set"),
 ]
 
 
@@ -60,27 +60,27 @@ def live_clients(stub_app):
 
 
 async def test_send_message_returns_a_wamid():
-    settings = whatsapp_cloud_settings()
+    settings = whatsapp_settings()
     assert settings.default_phone_number_id is not None
     recipient = settings.allowed_recipients[0]
 
     wamid = await send_message(
         phone_number_id=settings.default_phone_number_id,
         to=recipient,
-        body="tai42-channel-whatsapp-cloud live smoke: send_message",
+        body="tai42-channel-whatsapp live smoke: send_message",
     )
 
     assert wamid.startswith("wamid.")
 
 
 async def test_full_deliver_reaches_the_configured_human(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("CHANNEL_WHATSAPP_CLOUD_REDIS_URL", "redis://in-memory-fake/0")
+    monkeypatch.setenv("CHANNEL_WHATSAPP_REDIS_URL", "redis://in-memory-fake/0")
     reset_all_settings()
 
-    settings = whatsapp_cloud_settings()
-    await WhatsAppCloudChannel().deliver(
+    settings = whatsapp_settings()
+    await WhatsAppChannel().deliver(
         make_delivery(
             recipient=settings.allowed_recipients[0],
-            question="tai42-channel-whatsapp-cloud live smoke: full deliver — reply is not expected.",
+            question="tai42-channel-whatsapp live smoke: full deliver — reply is not expected.",
         )
     )

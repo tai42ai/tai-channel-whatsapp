@@ -3,9 +3,9 @@ requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tai42-channel-whatsapp-cloud"
+name = "tai42-channel-whatsapp"
 version = "0.1.0"
-description = "Meta WhatsApp Cloud API channel plugin for the TAI ecosystem — delivers ask_user questions to a human on WhatsApp and bridges the reply back."
+description = "Meta WhatsApp API channel plugin for the TAI ecosystem — delivers ask_user questions to a human on WhatsApp and bridges the reply back."
 readme = "README.md"
 requires-python = ">=3.13"
 license = "Apache-2.0"
@@ -40,9 +40,9 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://tai42.ai"
-Repository = "https://github.com/tai42ai/tai-channel-whatsapp-cloud"
-Issues = "https://github.com/tai42ai/tai-channel-whatsapp-cloud/issues"
-Changelog = "https://github.com/tai42ai/tai-channel-whatsapp-cloud/blob/main/CHANGELOG.md"
+Repository = "https://github.com/tai42ai/tai-channel-whatsapp"
+Issues = "https://github.com/tai42ai/tai-channel-whatsapp/issues"
+Changelog = "https://github.com/tai42ai/tai-channel-whatsapp/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 # PEP 735 dev group — installed by default on `uv sync`, so the gate
@@ -62,10 +62,10 @@ package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["tai42_channel_whatsapp_cloud*"]
+include = ["tai42_channel_whatsapp*"]
 
 [tool.setuptools.package-data]
-tai42_channel_whatsapp_cloud = ["py.typed", "tai-plugin.yml"]
+tai42_channel_whatsapp = ["py.typed", "tai-plugin.yml"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -77,11 +77,11 @@ xfail_strict = true
 # instead of passing green.
 filterwarnings = ["error"]
 markers = [
-    "integration: live WhatsApp Cloud API tests — run only when CHANNEL_WHATSAPP_CLOUD_* credentials are present",
+    "integration: live WhatsApp API tests — run only when CHANNEL_WHATSAPP_* credentials are present",
 ]
 
 [tool.coverage.run]
-source = ["tai42_channel_whatsapp_cloud"]
+source = ["tai42_channel_whatsapp"]
 
 [tool.coverage.report]
 fail_under = 97

@@ -195,15 +195,15 @@ def stub_app() -> Iterator[_StubApp]:
 
 
 _ENV_VARS = (
-    "CHANNEL_WHATSAPP_CLOUD_ACCESS_TOKEN",
-    "CHANNEL_WHATSAPP_CLOUD_APP_SECRET",
-    "CHANNEL_WHATSAPP_CLOUD_VERIFY_TOKEN",
-    "CHANNEL_WHATSAPP_CLOUD_API_BASE_URL",
-    "CHANNEL_WHATSAPP_CLOUD_DEFAULT_PHONE_NUMBER_ID",
-    "CHANNEL_WHATSAPP_CLOUD_ALLOWED_RECIPIENTS",
-    "CHANNEL_WHATSAPP_CLOUD_REDIS_URL",
-    "CHANNEL_WHATSAPP_CLOUD_HTTP_TIMEOUT_SECONDS",
-    "CHANNEL_WHATSAPP_CLOUD_DEDUPE_TTL",
+    "CHANNEL_WHATSAPP_ACCESS_TOKEN",
+    "CHANNEL_WHATSAPP_APP_SECRET",
+    "CHANNEL_WHATSAPP_VERIFY_TOKEN",
+    "CHANNEL_WHATSAPP_API_BASE_URL",
+    "CHANNEL_WHATSAPP_DEFAULT_PHONE_NUMBER_ID",
+    "CHANNEL_WHATSAPP_ALLOWED_RECIPIENTS",
+    "CHANNEL_WHATSAPP_REDIS_URL",
+    "CHANNEL_WHATSAPP_HTTP_TIMEOUT_SECONDS",
+    "CHANNEL_WHATSAPP_DEDUPE_TTL",
 )
 
 # Test fixtures shared across suites.
@@ -217,12 +217,12 @@ ALLOWED_B = "15551230002"
 
 @pytest.fixture
 def whatsapp_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setenv("CHANNEL_WHATSAPP_CLOUD_ACCESS_TOKEN", "test-access-token")
-    monkeypatch.setenv("CHANNEL_WHATSAPP_CLOUD_APP_SECRET", APP_SECRET)
-    monkeypatch.setenv("CHANNEL_WHATSAPP_CLOUD_VERIFY_TOKEN", VERIFY_TOKEN)
-    monkeypatch.setenv("CHANNEL_WHATSAPP_CLOUD_DEFAULT_PHONE_NUMBER_ID", PHONE_NUMBER_ID)
-    monkeypatch.setenv("CHANNEL_WHATSAPP_CLOUD_ALLOWED_RECIPIENTS", f"{ALLOWED_A},{ALLOWED_B}")
-    monkeypatch.setenv("CHANNEL_WHATSAPP_CLOUD_REDIS_URL", "redis://test/0")
+    monkeypatch.setenv("CHANNEL_WHATSAPP_ACCESS_TOKEN", "test-access-token")
+    monkeypatch.setenv("CHANNEL_WHATSAPP_APP_SECRET", APP_SECRET)
+    monkeypatch.setenv("CHANNEL_WHATSAPP_VERIFY_TOKEN", VERIFY_TOKEN)
+    monkeypatch.setenv("CHANNEL_WHATSAPP_DEFAULT_PHONE_NUMBER_ID", PHONE_NUMBER_ID)
+    monkeypatch.setenv("CHANNEL_WHATSAPP_ALLOWED_RECIPIENTS", f"{ALLOWED_A},{ALLOWED_B}")
+    monkeypatch.setenv("CHANNEL_WHATSAPP_REDIS_URL", "redis://test/0")
     # The cached settings singletons must never leak a previous test's env.
     reset_all_settings()
     yield
@@ -231,7 +231,7 @@ def whatsapp_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 @pytest.fixture
 def no_whatsapp_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """No ``CHANNEL_WHATSAPP_CLOUD_*`` env at all, settings caches reset before and
+    """No ``CHANNEL_WHATSAPP_*`` env at all, settings caches reset before and
     after — the unconfigured/fail-closed branches."""
     for var in _ENV_VARS:
         monkeypatch.delenv(var, raising=False)
@@ -338,7 +338,7 @@ def status_payload(*, wamid: str = "wamid.OUTBOUND", state: str = "delivered") -
 def build_request(
     *,
     method: str = "POST",
-    path: str = "/api/channels/whatsapp-cloud/inbound",
+    path: str = "/api/channels/whatsapp/inbound",
     body: bytes = b"",
     headers: dict[str, str] | None = None,
     query: bytes = b"",

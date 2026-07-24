@@ -10,22 +10,22 @@ import sys
 
 from tai42_contract.channels import Channel
 
-import tai42_channel_whatsapp_cloud
-from tai42_channel_whatsapp_cloud import WhatsAppCloudChannel
+import tai42_channel_whatsapp
+from tai42_channel_whatsapp import WhatsAppChannel
 
 
 def test_importing_register_registers_channel_and_route(stub_app):
-    sys.modules.pop("tai42_channel_whatsapp_cloud.register", None)
-    sys.modules.pop("tai42_channel_whatsapp_cloud.inbound", None)
+    sys.modules.pop("tai42_channel_whatsapp.register", None)
+    sys.modules.pop("tai42_channel_whatsapp.inbound", None)
     stub_app.channels.registered.clear()
     stub_app.http.routes.clear()
 
-    importlib.import_module("tai42_channel_whatsapp_cloud.register")
+    importlib.import_module("tai42_channel_whatsapp.register")
 
-    assert list(stub_app.channels.registered) == ["whatsapp-cloud"]
-    assert isinstance(stub_app.channels.registered["whatsapp-cloud"], WhatsAppCloudChannel)
+    assert list(stub_app.channels.registered) == ["whatsapp"]
+    assert isinstance(stub_app.channels.registered["whatsapp"], WhatsAppChannel)
     paths = {route.path for route in stub_app.http.routes}
-    assert paths == {"/api/channels/whatsapp-cloud/inbound"}
+    assert paths == {"/api/channels/whatsapp/inbound"}
     assert len(stub_app.http.routes) == 1
     route = stub_app.http.routes[0]
     assert route.methods == ["GET", "POST"]
@@ -33,27 +33,24 @@ def test_importing_register_registers_channel_and_route(stub_app):
 
 
 def test_bare_package_import_does_not_register():
-    # `import tai42_channel_whatsapp_cloud` (library use) must not touch the app
+    # `import tai42_channel_whatsapp` (library use) must not touch the app
     # handle; only the register module carries the side-effect. Checked in a clean
-    # subprocess (no stub app bound, no CHANNEL_WHATSAPP_CLOUD_* env) so the
+    # subprocess (no stub app bound, no CHANNEL_WHATSAPP_* env) so the
     # in-process module cache cannot mask it.
-    code = (
-        "import sys; import tai42_channel_whatsapp_cloud; "
-        "assert 'tai42_channel_whatsapp_cloud.register' not in sys.modules"
-    )
-    env = {key: value for key, value in os.environ.items() if not key.startswith("CHANNEL_WHATSAPP_CLOUD_")}
+    code = "import sys; import tai42_channel_whatsapp; assert 'tai42_channel_whatsapp.register' not in sys.modules"
+    env = {key: value for key, value in os.environ.items() if not key.startswith("CHANNEL_WHATSAPP_")}
     subprocess.run([sys.executable, "-c", code], check=True, env=env)
 
 
 def test_channel_satisfies_the_channel_protocol():
-    assert isinstance(WhatsAppCloudChannel(), Channel)
+    assert isinstance(WhatsAppChannel(), Channel)
 
 
 def test_package_exports():
-    assert tai42_channel_whatsapp_cloud.__all__ == [
-        "WhatsAppCloudChannel",
-        "WhatsAppCloudSettings",
-        "whatsapp_cloud_settings",
+    assert tai42_channel_whatsapp.__all__ == [
+        "WhatsAppChannel",
+        "WhatsAppSettings",
+        "whatsapp_settings",
     ]
-    for name in tai42_channel_whatsapp_cloud.__all__:
-        assert getattr(tai42_channel_whatsapp_cloud, name) is not None
+    for name in tai42_channel_whatsapp.__all__:
+        assert getattr(tai42_channel_whatsapp, name) is not None

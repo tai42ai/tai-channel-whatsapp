@@ -1,13 +1,13 @@
-# Contributing to tai42-channel-whatsapp-cloud
+# Contributing to tai42-channel-whatsapp
 
-`tai42-channel-whatsapp-cloud` is a Meta WhatsApp Cloud API **channel** plugin for
-the TAI ecosystem: `ask_user(..., channel="whatsapp-cloud")` delivers the question
+`tai42-channel-whatsapp` is a Meta WhatsApp API **channel** plugin for
+the TAI ecosystem: `ask_user(..., channel="whatsapp")` delivers the question
 to a human on WhatsApp and bridges the reply back to the interaction's public
 callback door. It implements the `tai42_contract.channels.Channel` protocol. The
 hard rule (the plugin rule): **it depends on `tai42-contract` + `tai42-kit` only
 and never imports the skeleton.** The skeleton loads it through the manifest's
-`channel_modules` field; `tai42_channel_whatsapp_cloud.register` registers the
-`"whatsapp-cloud"` channel and its inbound route as a side-effect — there is no
+`channel_modules` field; `tai42_channel_whatsapp.register` registers the
+`"whatsapp"` channel and its inbound route as a side-effect — there is no
 import edge to the skeleton in either direction.
 
 ## Ground rules
@@ -27,13 +27,13 @@ import edge to the skeleton in either direction.
 
 ## Layout
 
-- `register.py` — registers the `"whatsapp-cloud"` channel and the inbound route
+- `register.py` — registers the `"whatsapp"` channel and the inbound route
   as an import side-effect.
 - `channel.py` — the outbound `Channel` implementation (WhatsApp text).
 - `inbound.py` — the inbound door: GET verification, POST message + delivery-status
   webhooks, bridging the reply back to the callback.
 - `client.py`, `correlation.py`, `settings.py` — the HTTP client, the Redis
-  correlation store, and the `CHANNEL_WHATSAPP_CLOUD_` settings.
+  correlation store, and the `CHANNEL_WHATSAPP_` settings.
 
 ## Naming
 

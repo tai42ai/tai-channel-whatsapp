@@ -17,11 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: tai-channel-whatsapp-cloud
+        working-directory: tai-channel-whatsapp
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          path: tai-channel-whatsapp-cloud
+          path: tai-channel-whatsapp
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           repository: ${{ github.repository_owner }}/tai-contract
@@ -76,6 +76,6 @@ jobs:
         run: |
           gh api 'repos/${{ github.repository_owner }}/tai-e2e/dispatches' \
             -f 'event_type=ecosystem-push' \
-            -f 'client_payload[repo]=tai-channel-whatsapp-cloud' \
+            -f 'client_payload[repo]=tai-channel-whatsapp' \
             -f 'client_payload[ref]=${{ github.sha }}' \
             -f 'client_payload[legs]=arq'

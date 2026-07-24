@@ -27,10 +27,10 @@ from tai42_contract.app import tai42_app
 from tai42_contract.channels import ChannelDeliveryError
 from tai42_kit.clients.impl.redis import RedisClient
 
-from tai42_channel_whatsapp_cloud.settings import (
-    WhatsAppCloudRedisSettings,
-    whatsapp_cloud_redis_settings,
-    whatsapp_cloud_settings,
+from tai42_channel_whatsapp.settings import (
+    WhatsAppRedisSettings,
+    whatsapp_redis_settings,
+    whatsapp_settings,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,20 +47,18 @@ class PendingQuestion:
 
 
 def _pending_key(phone_number_id: str, wa_id: str) -> str:
-    return f"channel:whatsapp-cloud:pending:{phone_number_id}:{wa_id}"
+    return f"channel:whatsapp:pending:{phone_number_id}:{wa_id}"
 
 
 def _seen_key(wamid: str) -> str:
-    return f"channel:whatsapp-cloud:seen:{wamid}"
+    return f"channel:whatsapp:seen:{wamid}"
 
 
-def _redis_settings() -> WhatsAppCloudRedisSettings:
+def _redis_settings() -> WhatsAppRedisSettings:
     """The correlation-store connection, raising a clear config error when unset."""
-    settings = whatsapp_cloud_redis_settings()
+    settings = whatsapp_redis_settings()
     if not settings.redis_url:
-        raise ValueError(
-            "WhatsApp Cloud channel correlation store is not configured: set CHANNEL_WHATSAPP_CLOUD_REDIS_URL."
-        )
+        raise ValueError("WhatsApp channel correlation store is not configured: set CHANNEL_WHATSAPP_REDIS_URL.")
     return settings
 
 
@@ -136,4 +134,4 @@ async def already_seen(wamid: str) -> bool:
 async def mark_seen(wamid: str) -> None:
     """Remember a handled ``wamid`` for the configured dedupe window."""
     async with tai42_app.clients.client_ctx(RedisClient, _redis_settings()) as redis:
-        await redis.set(_seen_key(wamid), "1", ex=whatsapp_cloud_settings().dedupe_ttl)
+        await redis.set(_seen_key(wamid), "1", ex=whatsapp_settings().dedupe_ttl)

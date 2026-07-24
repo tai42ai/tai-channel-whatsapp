@@ -1,4 +1,4 @@
-"""The WhatsApp Cloud channel: ``deliver`` sends one question, ``notify`` sends
+"""The WhatsApp channel: ``deliver`` sends one question, ``notify`` sends
 one fire-and-forget message.
 
 Tier-1 formats (``confirm``, ``external``) carry the callback_url as a tappable
@@ -24,12 +24,12 @@ from datetime import UTC, datetime
 
 from tai42_contract.channels import ChannelDelivery, ChannelDeliveryError, ChannelNotification
 
-from tai42_channel_whatsapp_cloud.client import send_message
-from tai42_channel_whatsapp_cloud.correlation import release_pending, reserve_pending
-from tai42_channel_whatsapp_cloud.settings import (
-    WhatsAppCloudSettings,
+from tai42_channel_whatsapp.client import send_message
+from tai42_channel_whatsapp.correlation import release_pending, reserve_pending
+from tai42_channel_whatsapp.settings import (
+    WhatsAppSettings,
     require_delivery_setting,
-    whatsapp_cloud_settings,
+    whatsapp_settings,
 )
 
 # Tier-1 answer formats resolve via the callback link, not a WhatsApp reply.
@@ -52,10 +52,10 @@ def _render_link(delivery: ChannelDelivery) -> str:
     return f"{delivery.question}\n\nAnswer here: {delivery.callback_url}"
 
 
-def _resolve_target(settings: WhatsAppCloudSettings, requested: str | None) -> str:
+def _resolve_target(settings: WhatsAppSettings, requested: str | None) -> str:
     """The destination ``wa_id`` for an ask_user send.
 
-    A caller-requested recipient must be on ``CHANNEL_WHATSAPP_CLOUD_ALLOWED_RECIPIENTS``
+    A caller-requested recipient must be on ``CHANNEL_WHATSAPP_ALLOWED_RECIPIENTS``
     or is refused loudly (fail closed). This channel has no operator default
     recipient — the human's ``wa_id`` is always caller-supplied, so a request with
     none is refused loudly too.
@@ -63,16 +63,16 @@ def _resolve_target(settings: WhatsAppCloudSettings, requested: str | None) -> s
     if requested is None:
         raise ChannelDeliveryError(
             "no recipient requested and this channel has no default recipient; "
-            "set a wa_id on CHANNEL_WHATSAPP_CLOUD_ALLOWED_RECIPIENTS and request it"
+            "set a wa_id on CHANNEL_WHATSAPP_ALLOWED_RECIPIENTS and request it"
         )
     if requested not in set(settings.allowed_recipients):
         raise ChannelDeliveryError(
-            f"recipient {requested!r} is not on CHANNEL_WHATSAPP_CLOUD_ALLOWED_RECIPIENTS; refusing to send"
+            f"recipient {requested!r} is not on CHANNEL_WHATSAPP_ALLOWED_RECIPIENTS; refusing to send"
         )
     return requested
 
 
-class WhatsAppCloudChannel:
+class WhatsAppChannel:
     """Satisfies the ``tai42_contract.channels.Channel`` protocol."""
 
     async def deliver(self, delivery: ChannelDelivery) -> None:
@@ -82,9 +82,9 @@ class WhatsAppCloudChannel:
         absent request). An ask already past its deadline is refused loudly for
         every format before any reservation or send.
         """
-        settings = whatsapp_cloud_settings()
+        settings = whatsapp_settings()
         phone_number_id = require_delivery_setting(
-            settings.default_phone_number_id, "CHANNEL_WHATSAPP_CLOUD_DEFAULT_PHONE_NUMBER_ID"
+            settings.default_phone_number_id, "CHANNEL_WHATSAPP_DEFAULT_PHONE_NUMBER_ID"
         )
         target = _resolve_target(settings, delivery.recipient)
 
@@ -125,10 +125,10 @@ class WhatsAppCloudChannel:
         saw it). ``sender_identity`` set → send FROM that ``phone_number_id`` to
         the recipient, the recipient allowlist not consulted (a bridge reply goes
         to the address that initiated the conversation); unset → the configured
-        ``CHANNEL_WHATSAPP_CLOUD_DEFAULT_PHONE_NUMBER_ID`` with ``_resolve_target``'s
+        ``CHANNEL_WHATSAPP_DEFAULT_PHONE_NUMBER_ID`` with ``_resolve_target``'s
         allowlist enforced.
         """
-        settings = whatsapp_cloud_settings()
+        settings = whatsapp_settings()
         if notification.sender_identity is not None:
             phone_number_id = notification.sender_identity
             if notification.recipient is None:
@@ -136,7 +136,7 @@ class WhatsAppCloudChannel:
             target = notification.recipient
         else:
             phone_number_id = require_delivery_setting(
-                settings.default_phone_number_id, "CHANNEL_WHATSAPP_CLOUD_DEFAULT_PHONE_NUMBER_ID"
+                settings.default_phone_number_id, "CHANNEL_WHATSAPP_DEFAULT_PHONE_NUMBER_ID"
             )
             target = _resolve_target(settings, notification.recipient)
         wamid = await send_message(phone_number_id=phone_number_id, to=target, body=notification.message)

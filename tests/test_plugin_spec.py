@@ -11,7 +11,7 @@ from tai42_contract.plugins import PluginSpec
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _ROOT_SPEC = _REPO_ROOT / "tai-plugin.yml"
-_PACKAGED_SPEC = _REPO_ROOT / "src" / "tai42_channel_whatsapp_cloud" / "tai-plugin.yml"
+_PACKAGED_SPEC = _REPO_ROOT / "src" / "tai42_channel_whatsapp" / "tai-plugin.yml"
 
 
 def _spec() -> PluginSpec:
@@ -20,7 +20,7 @@ def _spec() -> PluginSpec:
 
 def test_plugin_spec_validates_and_names_this_listing():
     spec = _spec()
-    assert spec.ref == "tai42/channel-whatsapp-cloud"
+    assert spec.ref == "tai42/channel-whatsapp"
     for item in spec.provides:
         assert importlib.util.find_spec(item.module) is not None, (
             f"provides entry {item.name!r} names module {item.module!r} which does not resolve"
@@ -44,7 +44,7 @@ def test_packaged_spec_is_declared_in_package_data():
         "package-data"
     ]
     owning_packages = [pkg for pkg, files in package_data.items() if "tai-plugin.yml" in files]
-    assert owning_packages == ["tai42_channel_whatsapp_cloud"], (
-        "tai-plugin.yml must be shipped by exactly the tai42_channel_whatsapp_cloud package-data key; "
+    assert owning_packages == ["tai42_channel_whatsapp"], (
+        "tai-plugin.yml must be shipped by exactly the tai42_channel_whatsapp package-data key; "
         f"found {owning_packages!r} — a wrong/missing key means the wheel omits the spec"
     )

@@ -1,7 +1,7 @@
-"""Inbound WhatsApp Cloud webhook — where the human's reply and delivery
+"""Inbound WhatsApp webhook — where the human's reply and delivery
 receipts enter the system.
 
-``/api/channels/whatsapp-cloud/inbound`` is unauthenticated (Meta cannot send the
+``/api/channels/whatsapp/inbound`` is unauthenticated (Meta cannot send the
 platform api key):
 
 * ``GET`` is Meta's subscription handshake — echo ``hub.challenge`` in plaintext
@@ -33,14 +33,14 @@ from tai42_contract.app import tai42_app
 from tai42_contract.conversations import DeliveryReceipt
 from tai42_kit.clients.impl.http import HttpxClient
 
-from tai42_channel_whatsapp_cloud.correlation import (
+from tai42_channel_whatsapp.correlation import (
     PendingQuestion,
     already_seen,
     mark_seen,
     pop_pending,
     restore_pending,
 )
-from tai42_channel_whatsapp_cloud.settings import require_secret, whatsapp_cloud_settings
+from tai42_channel_whatsapp.settings import require_secret, whatsapp_settings
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ async def _authenticated_body(request: Request) -> bytes:
     Nothing in the body is trusted until the signature validates. Raises
     ``ValueError`` (app secret unset → logged 500), ``PayloadTooLargeError``
     (→ 413), or ``SignatureRejectedError`` (→ 401)."""
-    app_secret = require_secret(whatsapp_cloud_settings().app_secret, "CHANNEL_WHATSAPP_CLOUD_APP_SECRET")
+    app_secret = require_secret(whatsapp_settings().app_secret, "CHANNEL_WHATSAPP_APP_SECRET")
     raw = await _read_bounded_body(request, _MAX_BODY_BYTES)
     _validate_signature(app_secret, raw, request.headers.get(_SIGNATURE_HEADER))
     return raw
@@ -120,18 +120,16 @@ def _auth_error_response(exc: ValueError | PayloadTooLargeError | SignatureRejec
     if isinstance(exc, PayloadTooLargeError):
         return PlainTextResponse("payload too large", status_code=413)
     if isinstance(exc, SignatureRejectedError):
-        logger.warning("rejected whatsapp-cloud inbound: %s", exc)
+        logger.warning("rejected whatsapp inbound: %s", exc)
         return PlainTextResponse("signature verification failed", status_code=401)
-    logger.error("whatsapp-cloud inbound: CHANNEL_WHATSAPP_CLOUD_APP_SECRET is unset or empty; failing closed")
+    logger.error("whatsapp inbound: CHANNEL_WHATSAPP_APP_SECRET is unset or empty; failing closed")
     return JSONResponse({"error": "channel misconfigured"}, status_code=500)
 
 
 async def _forward_answer(callback_url: str, answer: str) -> httpx.Response:
     """POST ``{"answer": <value>}`` to the interaction's callback door and return
     its response; the caller applies the status policy."""
-    async with tai42_app.clients.client_ctx(HttpxClient, timeout=whatsapp_cloud_settings().http_timeout_seconds) as (
-        client
-    ):
+    async with tai42_app.clients.client_ctx(HttpxClient, timeout=whatsapp_settings().http_timeout_seconds) as (client):
         return await client.post(callback_url, json={"answer": answer})
 
 
@@ -143,15 +141,15 @@ def _verify_handshake(request: Request) -> Response:
     if params.get("hub.mode") != "subscribe":
         return PlainTextResponse("unsupported hub.mode", status_code=403)
     try:
-        expected = require_secret(whatsapp_cloud_settings().verify_token, "CHANNEL_WHATSAPP_CLOUD_VERIFY_TOKEN")
+        expected = require_secret(whatsapp_settings().verify_token, "CHANNEL_WHATSAPP_VERIFY_TOKEN")
     except ValueError:
-        logger.error("whatsapp-cloud verify: CHANNEL_WHATSAPP_CLOUD_VERIFY_TOKEN is unset or empty; failing closed")
+        logger.error("whatsapp verify: CHANNEL_WHATSAPP_VERIFY_TOKEN is unset or empty; failing closed")
         return JSONResponse({"error": "channel misconfigured"}, status_code=500)
     provided = params.get("hub.verify_token")
     # A non-ASCII token can never match the configured token and would raise a
     # compare_digest TypeError (a 500); treat it as a mismatch (403).
     if provided is None or not provided.isascii() or not hmac.compare_digest(provided, expected):
-        logger.warning("rejected whatsapp-cloud verify: hub.verify_token mismatch")
+        logger.warning("rejected whatsapp verify: hub.verify_token mismatch")
         return PlainTextResponse("verification failed", status_code=403)
     challenge = params.get("hub.challenge")
     if challenge is None:
@@ -173,14 +171,14 @@ def _iter_values(payload: Any) -> Iterator[dict[str, Any]]:
         return
     for entry in entries:
         if not isinstance(entry, dict):
-            logger.warning("whatsapp-cloud entry is not an object; skipping: %r", entry)
+            logger.warning("whatsapp entry is not an object; skipping: %r", entry)
             continue
         changes = entry.get("changes")
         if not isinstance(changes, list):
             continue
         for change in changes:
             if not isinstance(change, dict):
-                logger.warning("whatsapp-cloud change is not an object; skipping: %r", change)
+                logger.warning("whatsapp change is not an object; skipping: %r", change)
                 continue
             value = change.get("value")
             if isinstance(value, dict):
@@ -193,14 +191,14 @@ def _as_list(value: Any) -> list[Any]:
 
 
 @tai42_app.http.custom_route(
-    "/api/channels/whatsapp-cloud/inbound",
+    "/api/channels/whatsapp/inbound",
     methods=["GET", "POST"],
-    summary="WhatsApp Cloud webhook (verification + messages + delivery statuses)",
+    summary="WhatsApp webhook (verification + messages + delivery statuses)",
     tags=["channels"],
     response_model=None,
     authed=False,
 )
-async def whatsapp_cloud_inbound(request: Request) -> Response:
+async def whatsapp_inbound(request: Request) -> Response:
     """Meta's single webhook endpoint: GET verification, POST message/status events.
 
     POST order is load-bearing: bounded body read (413) → X-Hub-Signature-256
@@ -250,7 +248,7 @@ async def _process_value(value: dict[str, Any]) -> Exception | None:
     first_error: Exception | None = None
     for status in _as_list(value.get("statuses")):
         if not isinstance(status, dict):
-            logger.warning("whatsapp-cloud status item is not an object; skipping: %r", status)
+            logger.warning("whatsapp status item is not an object; skipping: %r", status)
             continue
         try:
             await _handle_status(status)
@@ -259,7 +257,7 @@ async def _process_value(value: dict[str, Any]) -> Exception | None:
                 first_error = exc
     for message in _as_list(value.get("messages")):
         if not isinstance(message, dict):
-            logger.warning("whatsapp-cloud message item is not an object; skipping: %r", message)
+            logger.warning("whatsapp message item is not an object; skipping: %r", message)
             continue
         try:
             await _handle_message(message, value)
@@ -274,10 +272,10 @@ async def _handle_message(message: dict[str, Any], value: dict[str, Any]) -> Non
     A message lacking a string id is odd and skipped (logged)."""
     wamid = message.get("id")
     if not isinstance(wamid, str) or not wamid:
-        logger.warning("whatsapp-cloud message missing a string id; skipping: %r", message)
+        logger.warning("whatsapp message missing a string id; skipping: %r", message)
         return
     if message.get("type") != "text":
-        logger.debug("non-text whatsapp-cloud message %s ignored", wamid)
+        logger.debug("non-text whatsapp message %s ignored", wamid)
         return
 
     if await already_seen(wamid):
@@ -349,14 +347,14 @@ async def _bridge_inbound(phone_number_id: str, wa_id: str, text: str, wamid: st
     """
     try:
         await tai42_app.conversations.accept(
-            channel="whatsapp-cloud",
+            channel="whatsapp",
             our_identity=phone_number_id,
             client_address=wa_id,
             text=text,
             provider_message_id=wamid,
         )
     except LookupError as exc:
-        logger.warning("unrouted whatsapp-cloud inbound %s dropped: %s", wamid, exc)
+        logger.warning("unrouted whatsapp inbound %s dropped: %s", wamid, exc)
     await mark_seen(wamid)
 
 
@@ -371,18 +369,18 @@ async def _handle_status(status: dict[str, Any]) -> None:
     wamid = status.get("id")
     state = status.get("status")
     if not isinstance(wamid, str) or not wamid or not isinstance(state, str) or not state:
-        logger.warning("whatsapp-cloud status entry missing string id/status; skipping: %r", status)
+        logger.warning("whatsapp status entry missing string id/status; skipping: %r", status)
         return
     if state == "read":
-        logger.debug("whatsapp-cloud read receipt for %s ignored", wamid)
+        logger.debug("whatsapp read receipt for %s ignored", wamid)
         return
     receipt = _DELIVERY_RECEIPTS.get(state)
     if receipt is None:
-        logger.debug("whatsapp-cloud status %r for %s ignored", state, wamid)
+        logger.debug("whatsapp status %r for %s ignored", state, wamid)
         return
     if receipt is DeliveryReceipt.FAILED:
-        logger.warning("whatsapp-cloud reported delivery failure for %s: %r", wamid, status.get("errors"))
+        logger.warning("whatsapp reported delivery failure for %s: %r", wamid, status.get("errors"))
     try:
-        await tai42_app.conversations.record_delivery_status("whatsapp-cloud", wamid, receipt)
+        await tai42_app.conversations.record_delivery_status("whatsapp", wamid, receipt)
     except LookupError as exc:
-        logger.info("whatsapp-cloud status for untracked message %s ignored: %s", wamid, exc)
+        logger.info("whatsapp status for untracked message %s ignored: %s", wamid, exc)

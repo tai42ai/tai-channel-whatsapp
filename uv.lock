@@ -1234,7 +1234,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tai42-channel-whatsapp-cloud"
+name = "tai42-channel-whatsapp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

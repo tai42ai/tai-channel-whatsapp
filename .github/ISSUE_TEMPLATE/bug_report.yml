@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a defect in tai42-channel-whatsapp-cloud (the Meta WhatsApp Cloud API channel plugin)
+description: Report a defect in tai42-channel-whatsapp (the Meta WhatsApp API channel plugin)
 labels: ["bug"]
 body:
   - type: textarea
@@ -20,7 +20,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: tai42-channel-whatsapp-cloud version
+      label: tai42-channel-whatsapp version
       placeholder: "0.1.0"
     validations:
       required: true

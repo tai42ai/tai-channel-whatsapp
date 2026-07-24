@@ -1,7 +1,7 @@
 """Import-graph guard for the shipped package.
 
 Two walks share one allowlist so every import root reachable from
-``tai42_channel_whatsapp_cloud`` is the HTTP surface, the shared platform
+``tai42_channel_whatsapp`` is the HTTP surface, the shared platform
 substrate, their dependency closure, or the stdlib — anything else fails loudly.
 The runtime walk imports the package (and every submodule) in a fresh subprocess
 and inspects ``sys.modules``; the static walk parses every source file's full
@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 # The shipped package and the public first-party packages it may import.
-PACKAGE = "tai42_channel_whatsapp_cloud"
+PACKAGE = "tai42_channel_whatsapp"
 ALLOWED_FIRST_PARTY = frozenset({PACKAGE, "tai42_contract", "tai42_kit"})
 
 # Every third-party root the shipped graph pulls in -- declared deps plus their

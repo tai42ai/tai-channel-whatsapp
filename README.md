@@ -1,14 +1,14 @@
-# tai42-channel-whatsapp-cloud
+# tai42-channel-whatsapp
 
-[![CI](https://github.com/tai42ai/tai-channel-whatsapp-cloud/actions/workflows/ci.yml/badge.svg)](https://github.com/tai42ai/tai-channel-whatsapp-cloud/actions/workflows/ci.yml)
+[![CI](https://github.com/tai42ai/tai-channel-whatsapp/actions/workflows/ci.yml/badge.svg)](https://github.com/tai42ai/tai-channel-whatsapp/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-A Meta **WhatsApp Cloud API** channel plugin for the TAI ecosystem. It delivers
+A Meta **WhatsApp API** channel plugin for the TAI ecosystem. It delivers
 an `ask_user` question to a human on WhatsApp through the Cloud (Graph) API and
 bridges the human's reply back into the interactions store — so an agent can
 reach a person out-of-band instead of only showing the question in the Studio
 inbox. It implements the `tai42_contract.channels.Channel` protocol and registers
-under the name `"whatsapp-cloud"`. It is for numbers hosted directly on Meta's
+under the name `"whatsapp"`. It is for numbers hosted directly on Meta's
 Cloud API (no BSP/Twilio in front); the Twilio-hosted path is the sibling
 `tai42-channel-twilio`.
 
@@ -17,7 +17,7 @@ Cloud API (no BSP/Twilio in front); the Twilio-hosted path is the sibling
 TAI is an open-source runtime for MCP tools, agents, and workflows. A `Channel`
 is "how a question reaches a human" — a pluggable deliverer the runtime resolves
 by name when `ask_user` is called with `channel=...`. This package is one such
-deliverer (WhatsApp Cloud API); siblings back the same contract with Twilio,
+deliverer (WhatsApp API); siblings back the same contract with Twilio,
 Telegram, or Slack. The ecosystem is open-ended: any package can back the same
 contract, so this repo is this plugin's own full doc home, and the documentation
 site covers the platform-level story:
@@ -41,9 +41,9 @@ this repo alongside your `tai42-skeleton` checkout and add it as an editable
 dependency of the environment that runs the server:
 
 ```bash
-git clone https://github.com/tai42ai/tai-channel-whatsapp-cloud
+git clone https://github.com/tai42ai/tai-channel-whatsapp
 cd tai-skeleton   # or your own app checkout
-uv add --editable ../tai-channel-whatsapp-cloud   # once published: uv add tai42-channel-whatsapp-cloud
+uv add --editable ../tai-channel-whatsapp   # once published: uv add tai42-channel-whatsapp
 ```
 
 ## Discovery
@@ -51,48 +51,48 @@ uv add --editable ../tai-channel-whatsapp-cloud   # once published: uv add tai42
 The runtime discovers this plugin through the manifest's `channel_modules` key:
 
 ```yaml
-channel_modules: ["tai42_channel_whatsapp_cloud"]
+channel_modules: ["tai42_channel_whatsapp"]
 ```
 
 At app load the runtime imports every module under the package, and
 `register.py` fires the registrations as its import side-effect: the
-`"whatsapp-cloud"` channel on `tai42_app.channels`, and — via the `inbound`
+`"whatsapp"` channel on `tai42_app.channels`, and — via the `inbound`
 import — the unauthenticated webhook route on `tai42_app.http`. A bare
-`import tai42_channel_whatsapp_cloud` registers **nothing** — the package is
+`import tai42_channel_whatsapp` registers **nothing** — the package is
 library-safe; only the register module carries the side-effect.
 
 ## Configuration
 
-Settings are read from the `CHANNEL_WHATSAPP_CLOUD_` environment group (see
-`WhatsAppCloudSettings` / `WhatsAppCloudRedisSettings`):
+Settings are read from the `CHANNEL_WHATSAPP_` environment group (see
+`WhatsAppSettings` / `WhatsAppRedisSettings`):
 
 | Env var | Required | Meaning |
 |---|---|---|
-| `CHANNEL_WHATSAPP_CLOUD_ACCESS_TOKEN` | yes | Graph API access token (`SecretStr`) — the Bearer credential for the send |
-| `CHANNEL_WHATSAPP_CLOUD_APP_SECRET` | yes | Meta app secret (`SecretStr`) — the `X-Hub-Signature-256` HMAC key for inbound webhooks |
-| `CHANNEL_WHATSAPP_CLOUD_VERIFY_TOKEN` | yes | Shared token (`SecretStr`) echoed during Meta's GET webhook verification handshake |
-| `CHANNEL_WHATSAPP_CLOUD_DEFAULT_PHONE_NUMBER_ID` | for ask_user | The `phone_number_id` messages are sent FROM when no sender identity is routed |
-| `CHANNEL_WHATSAPP_CLOUD_ALLOWED_RECIPIENTS` | for ask_user | Whitelist of `wa_id`s a caller-requested recipient must be on — comma-separated or a JSON list; an unlisted request is refused loudly |
-| `CHANNEL_WHATSAPP_CLOUD_API_BASE_URL` | no | Graph API origin + pinned version (default `https://graph.facebook.com/v23.0`) |
-| `CHANNEL_WHATSAPP_CLOUD_REDIS_URL` | yes | Correlation store (plugin-owned Redis) |
-| `CHANNEL_WHATSAPP_CLOUD_REDIS_MAX_CONNECTIONS` … | no | The rest of the kit `RedisConnectionSettings` fields, same names under this prefix |
-| `CHANNEL_WHATSAPP_CLOUD_HTTP_TIMEOUT_SECONDS` | no (30.0) | Outbound send + answer-forward timeout, seconds |
-| `CHANNEL_WHATSAPP_CLOUD_DEDUPE_TTL` | no (172800) | Seen-`wamid` replay-guard window, seconds |
+| `CHANNEL_WHATSAPP_ACCESS_TOKEN` | yes | Graph API access token (`SecretStr`) — the Bearer credential for the send |
+| `CHANNEL_WHATSAPP_APP_SECRET` | yes | Meta app secret (`SecretStr`) — the `X-Hub-Signature-256` HMAC key for inbound webhooks |
+| `CHANNEL_WHATSAPP_VERIFY_TOKEN` | yes | Shared token (`SecretStr`) echoed during Meta's GET webhook verification handshake |
+| `CHANNEL_WHATSAPP_DEFAULT_PHONE_NUMBER_ID` | for ask_user | The `phone_number_id` messages are sent FROM when no sender identity is routed |
+| `CHANNEL_WHATSAPP_ALLOWED_RECIPIENTS` | for ask_user | Whitelist of `wa_id`s a caller-requested recipient must be on — comma-separated or a JSON list; an unlisted request is refused loudly |
+| `CHANNEL_WHATSAPP_API_BASE_URL` | no | Graph API origin + pinned version (default `https://graph.facebook.com/v23.0`) |
+| `CHANNEL_WHATSAPP_REDIS_URL` | yes | Correlation store (plugin-owned Redis) |
+| `CHANNEL_WHATSAPP_REDIS_MAX_CONNECTIONS` … | no | The rest of the kit `RedisConnectionSettings` fields, same names under this prefix |
+| `CHANNEL_WHATSAPP_HTTP_TIMEOUT_SECONDS` | no (30.0) | Outbound send + answer-forward timeout, seconds |
+| `CHANNEL_WHATSAPP_DEDUPE_TTL` | no (172800) | Seen-`wamid` replay-guard window, seconds |
 
 One credential (`ACCESS_TOKEN` + `APP_SECRET`) serves many `phone_number_id`s: a
 bridge reply is sent from the exact `phone_number_id` that received the inbound
 message, while an ask_user delivery is sent from
-`CHANNEL_WHATSAPP_CLOUD_DEFAULT_PHONE_NUMBER_ID`. Recipient policy is
+`CHANNEL_WHATSAPP_DEFAULT_PHONE_NUMBER_ID`. Recipient policy is
 operator-owned: a caller may request a `wa_id` per ask, but it is sent to only if
-it is on `CHANNEL_WHATSAPP_CLOUD_ALLOWED_RECIPIENTS` (fail closed — an unlisted or
+it is on `CHANNEL_WHATSAPP_ALLOWED_RECIPIENTS` (fail closed — an unlisted or
 absent recipient raises, nothing is sent). Secrets live only in the environment.
 
 Two steps happen **out-of-band** (the plugin never mutates Meta app configuration
 at startup):
 
 1. In the Meta App dashboard, point the WhatsApp webhook callback URL at
-   `{public base URL}/api/channels/whatsapp-cloud/inbound` and set the verify
-   token to `CHANNEL_WHATSAPP_CLOUD_VERIFY_TOKEN`. Meta issues a `GET` handshake
+   `{public base URL}/api/channels/whatsapp/inbound` and set the verify
+   token to `CHANNEL_WHATSAPP_VERIFY_TOKEN`. Meta issues a `GET` handshake
    the route answers by echoing `hub.challenge`.
 2. Subscribe the app to the `messages` webhook field so message and delivery-status
    events reach the same `POST` endpoint.
@@ -158,7 +158,7 @@ uv run pyright
 ```
 
 The live integration suite (`pytest -m integration`) sends real messages via the
-WhatsApp Cloud API and runs only when the `CHANNEL_WHATSAPP_CLOUD_*` credentials
+WhatsApp API and runs only when the `CHANNEL_WHATSAPP_*` credentials
 are present in the environment; it skips cleanly otherwise.
 
 ## License
